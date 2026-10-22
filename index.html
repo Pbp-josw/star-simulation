@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>별의 온도와 색 시뮬레이션 | 왜 초록색 별은 없을까?</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --bg-card: rgba(18, 24, 43, 0.75);
+      --bg-card-hover: rgba(28, 36, 63, 0.85);
+      --border-glow: rgba(99, 102, 241, 0.2);
+      --accent-blue: #6366f1;
+      --accent-cyan: #38bdf8;
+      --accent-pink: #ec4899;
+      --accent-yellow: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-kr: 'Noto Sans KR', sans-serif;
+      --font-en: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: var(--font-kr);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Starry Background Effect */
+    #bg-stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navigation Bar between simulations */
+    .nav-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(56,189,248,0.2));
+      border: 1px solid rgba(99,102,241,0.4);
+      color: var(--accent-cyan);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* Main Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Glass Card */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+      transition: border-color 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Star Visualizer Box */
+    .star-display-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8) 0%, rgba(7, 9, 19, 0.95) 100%);
+      border-radius: 16px;
+      padding: 2rem 1rem;
+      min-height: 320px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    #starCanvas {
+      width: 240px;
+      height: 240px;
+      filter: drop-shadow(0 0 35px var(--star-glow-color, rgba(255, 255, 255, 0.5)));
+      transition: filter 0.3s ease;
+    }
+
+    .star-info-overlay {
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .star-temp-badge {
+      font-family: var(--font-en);
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .star-color-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-top: 0.25rem;
+    }
+
+    /* Controls */
+    .control-group {
+      margin-top: 1.5rem;
+    }
+
+    .slider-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(to right, 
+        rgb(255, 56, 0) 0%, 
+        rgb(255, 122, 18) 3%, 
+        rgb(255, 163, 105) 6.1%, 
+        rgb(255, 218, 197) 11.5%, 
+        rgb(245, 230, 255) 15.2%, 
+        rgb(202, 225, 255) 23%, 
+        rgb(166, 200, 255) 39.4%, 
+        rgb(136, 178, 255) 69.7%, 
+        rgb(120, 166, 255) 100%
+      );
+      outline: none;
+      cursor: pointer;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--slider-thumb-color, #ffffff);
+      border: 3px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 14px var(--slider-thumb-color, rgba(255,255,255,0.9));
+      transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Presets */
+    .presets-title {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .btn-preset {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-preset:hover, .btn-preset.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Spectrum Canvas Section */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 220px;
+      background: rgba(10, 14, 26, 0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    canvas.spectrum-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Telemetry Data Grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .data-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 0.9rem;
+    }
+
+    .data-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .data-value {
+      font-family: var(--font-en);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Explanation Section (Middle School Level) */
+    .explanation-section {
+      margin-top: 3rem;
+    }
+
+    .section-heading {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    .explain-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .explain-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .explain-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .explain-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .explain-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--accent-cyan);
+    }
+
+    .explain-text {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    .highlight-box {
+      background: rgba(99, 102, 241, 0.12);
+      border-left: 4px solid var(--accent-blue);
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Eye RGB Visualizer Card */
+    .eye-visualizer-card {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-top: 1rem;
+    }
+
+    .eye-flex {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    @media (min-width: 850px) {
+      .eye-flex {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .rgb-bars-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .rgb-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .rgb-label {
+      width: 90px;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .bar-bg {
+      flex: 1;
+      height: 22px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 11px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 11px;
+      transition: width 0.2s ease, background-color 0.2s ease;
+    }
+
+    .color-mix-result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(0,0,0,0.3);
+      padding: 1.5rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .eye-cone-illustration {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .cone {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #000;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      transition: transform 0.2s ease;
+    }
+
+    /* Quiz Container */
+    .quiz-section {
+      margin-top: 3rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 2rem;
+    }
+
+    .quiz-question {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 600px) {
+      .quiz-options {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .quiz-opt {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--text-main);
+      text-align: left;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quiz-opt:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--accent-blue);
+    }
+
+    .quiz-opt.correct {
+      background: rgba(34, 197, 94, 0.25) !important;
+      border-color: #22c55e !important;
+      color: #86efac;
+    }
+
+    .quiz-opt.wrong {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border-color: #ef4444 !important;
+      color: #fca5a5;
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2.5rem 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Starry Background Canvas -->
+  <canvas id="bg-stars"></canvas>
+
+  <div class="container">
+    <!-- Nav Link between simulations -->
+    <div class="nav-bar">
+      <a href="index_2.html" class="nav-link active">✨ 별의 온도와 색 관측</a>
+      <a href="em_wave_simulation.html" class="nav-link">⚡ 입자 열운동 & 전자기파 방출 원리</a>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <div class="badge">🔬 중3 과학 | 태양계와 별 탐구</div>
+      <h1>별의 표면 온도와 색 시뮬레이션</h1>
+      <p>온도에 따라 변하는 별의 색을 관찰하고, <strong>"왜 우주에는 초록색 별이 없을까?"</strong>의 비밀을 파헤쳐 보세요!</p>
+    </header>
+
+    <!-- Main Grid: Star Canvas & Telemetry Controls -->
+    <div class="dashboard-grid">
+      
+      <!-- Left Card: Interactive Star Viewer -->
+      <div class="card">
+        <div class="card-title">
+          <span>✨</span> 별의 관측 모습 (Simulation)
+        </div>
+        <div class="star-display-box">
+          <canvas id="starCanvas" width="240" height="240"></canvas>
+          <div class="star-info-overlay">
+            <div class="star-temp-badge" id="tempDisplay">5,800 K</div>
+            <div class="star-color-name" id="colorNameDisplay">황백색 (Yellow-White)</div>
+          </div>
+        </div>
+
+        <!-- Slider & Presets -->
+        <div class="control-group">
+          <div class="slider-container">
+            <div class="slider-label">
+              <span>별의 표면 온도 (Surface Temperature)</span>
+              <span id="sliderValText" style="color: var(--accent-cyan); font-family: var(--font-en); font-weight:700;">5,800 K</span>
+            </div>
+            <input type="range" id="tempSlider" min="2000" max="35000" step="100" value="5800">
+          </div>
+
+          <div class="presets-title">🌟 대표적인 주요 별 선택하기 (Presets)</div>
+          <div class="preset-buttons">
+            <button class="btn-preset" data-temp="3300">
+              <span class="dot" style="background:#ff4500;"></span> 베텔게우스 (3,300K)
+            </button>
+            <button class="btn-preset" data-temp="4000">
+              <span class="dot" style="background:#ff8c00;"></span> 알데바란 (4,000K)
+            </button>
+            <button class="btn-preset active" data-temp="5800">
+              <span class="dot" style="background:#fff4ea;"></span> 태양 (5,800K)
+            </button>
+            <button class="btn-preset" data-temp="9600">
+              <span class="dot" style="background:#cae1ff;"></span> 베가 (9,600K)
+            </button>
+            <button class="btn-preset" data-temp="12100">
+              <span class="dot" style="background:#80b3ff;"></span> 리겔 (12,100K)
+            </button>
+            <button class="btn-preset" data-temp="30000">
+              <span class="dot" style="background:#4080ff;"></span> 뱀주인자리 ζ (30,000K)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Card: Spectrum Graph & Data -->
+      <div class="card">
+        <div class="card-title">
+          <span>📊</span> 별의 방출 스펙트럼 (Planck Curve)
+        </div>
+        <p style="font-size:0.88rem; color:var(--text-muted);">
+          가시광선 영역(380nm~750nm) 파장대별 빛의 방출 세기 곡선입니다.
+        </p>
+
+        <!-- Planck Curve Canvas -->
+        <div class="canvas-container">
+          <canvas id="spectrumCanvas" class="spectrum-canvas"></canvas>
+        </div>
+
+        <!-- Telemetry Data Grid -->
+        <div class="data-grid">
+          <div class="data-item">
+            <div class="data-label">최대 방출 파장 (&lambda;<sub>max</sub>)</div>
+            <div class="data-value" id="peakWavelength">500 nm</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">(빈의 변위 법칙)</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">주된 방출 빛 영역</div>
+            <div class="data-value" id="peakRegion" style="color:#22c55e;">초록색 가시광선</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">(Green Peak)</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">RGB 색상 혼합비</div>
+            <div class="data-value" id="rgbRatio" style="font-size:0.95rem;">R:255 G:244 B:232</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">눈으로 보는 최종 색</div>
+            <div class="data-value" id="perceivedColor">백색 / 연한 노랑</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Explanatory Section (Eye RGB Cone & Green Star Paradox) -->
+    <div class="explanation-section">
+      
+      <!-- Interactive Eye Perception Card -->
+      <div class="eye-visualizer-card">
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--accent-cyan);">
+          👁️ 핵심 원리: 태양(5,800K)의 정점은 초록색인데, 왜 초록색 별이 아닐까?
+        </h2>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 1.5rem;">
+          별은 레이저처럼 단 한 가지 색의 빛만 쏘는 것이 아닙니다! <strong>모든 무지개색 빛을 섞어서 방출</strong>합니다.
+          슬라이더를 움직이며 사람 눈의 시각 세포(적/녹/청 원뿔세포)가 어떻게 반응하는지 확인해보세요.
+        </p>
+
+        <div class="eye-flex">
+          <!-- RGB Fill Bars -->
+          <div class="rgb-bars-container">
+            <div class="rgb-row">
+              <div class="rgb-label" style="color: #ff6b6b;">🔴 L-원뿔 (Red)</div>
+              <div class="bar-bg">
+                <div class="bar-fill" id="barRed" style="width: 100%; background: #ff4757;"></div>
+              </div>
+              <span id="valRed" style="font-family:var(--font-en); font-weight:700; width:45px;">255</span>
+            </div>
+            <div class="rgb-row">
+              <div class="rgb-label" style="color: #2ed573;">🟢 M-원뿔 (Green)</div>
+              <div class="bar-bg">
+                <div class="bar-fill" id="barGreen" style="width: 95%; background: #2ed573;"></div>
+              </div>
+              <span id="valGreen" style="font-family:var(--font-en); font-weight:700; width:45px;">244</span>
+            </div>
+            <div class="rgb-row">
+              <div class="rgb-label" style="color: #1e90ff;">🔵 S-원뿔 (Blue)</div>
+              <div class="bar-bg">
+                <div class="bar-fill" id="barBlue" style="width: 90%; background: #1e90ff;"></div>
+              </div>
+              <span id="valBlue" style="font-family:var(--font-en); font-weight:700; width:45px;">232</span>
+            </div>
+          </div>
+
+          <!-- Color Mix Result & Explanation -->
+          <div class="color-mix-result">
+            <div class="eye-cone-illustration">
+              <div class="cone" style="background:#ff4757; color:white;">R</div>
+              <div style="font-size:1.5rem; align-self:center;">+</div>
+              <div class="cone" style="background:#2ed573; color:black;">G</div>
+              <div style="font-size:1.5rem; align-self:center;">+</div>
+              <div class="cone" style="background:#1e90ff; color:white;">B</div>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">
+              빛의 3원색 혼합 결과: <span id="mixResultText" style="color: #fff4ea;">흰색(White)</span>
+            </div>
+            <div style="font-size: 0.88rem; color: #94a3b8; line-height: 1.5;">
+              초록색 파장이 가장 세더라도, <strong>빨간색과 파란색 빛도 충분히 세게 같이 나오기 때문에</strong> 
+              우리 뇌는 이 빛들이 골고루 섞인 <strong>'흰색(백색)'</strong>으로 인식합니다!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Science Concept Cards for 3rd Graders -->
+      <div style="margin-top: 2rem;">
+        <div class="section-heading">
+          💡 중3 과학 핵심 개념 3가지 정리
+        </div>
+        <div class="explain-cards">
+          
+          <div class="explain-card">
+            <div class="explain-icon">🌡️</div>
+            <div class="explain-title">1. 별의 온도와 색깔</div>
+            <div class="explain-text">
+              별의 표면 온도가 낮을수록 <strong>붉은색</strong>을 띠고, 온도가 높아질수록 <strong>노란색 &rarr; 흰색 &rarr; 파란색</strong>으로 변합니다.
+              <div class="highlight-box">
+                - 저온 별 (~3,000K): 붉은색<br>
+                - 중온 별 (~6,000K): 노란색/흰색<br>
+                - 고온 별 (10,000K~): 푸른색
+              </div>
+            </div>
+          </div>
+
+          <div class="explain-card">
+            <div class="explain-icon">🌈</div>
+            <div class="explain-title">2. 흑체 복사와 연속 스펙트럼</div>
+            <div class="explain-text">
+              별은 특정 단일 파장의 빛만 내지 않고 가시광선 전체 영역에 걸쳐 <strong>연속 스펙트럼</strong> 형태로 에너지(빛)를 방출합니다.
+              <div class="highlight-box">
+                온도가 약 5,500K일 때 가장 에너지가 강한 파장은 초록색이지만, 파란색과 빨간색 에너지도 함께 아주 강하게 흘러나옵니다!
+              </div>
+            </div>
+          </div>
+
+          <div class="explain-card">
+            <div class="explain-icon">👁️</div>
+            <div class="explain-title">3. 사람 눈과 빛의 합성</div>
+            <div class="explain-text">
+              망막의 원뿔세포는 빨강, 초록, 파랑 빛을 동시에 받아들입니다. 초록빛이 최대이더라도 다른 색 빛도 비슷하게 강하게 들어오므로 <strong>합성되어 흰색</strong>이 됩니다.
+              <div class="highlight-box">
+                레이저 = 1가지 색만 방출 &rarr; 초록색!<br>
+                별 = 무지개 모든 색 방출 &rarr; 흰색!
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quiz Section for Students -->
+    <div class="quiz-section">
+      <div class="card-title">
+        <span>🧩</span> 개념 확인 퀴즈 (중3 확인 학습)
+      </div>
+      <div class="quiz-question" id="quizQuestion">
+        Q. 표면 온도가 약 5,800K인 태양은 초록색 파장의 빛을 가장 많이 방출합니다. 하지만 밤하늘이나 우주에서 초록색 별을 볼 수 없는 핵심 이유는 무엇일까요?
+      </div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="checkQuiz(0)">
+          1. 초록색 빛은 지구 대기를 통과하면서 모두 흡수되기 때문이다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(1)">
+          2. 초록빛 외에도 빨간색과 파란색 빛이 함께 방출되어 눈에서 흰색으로 합성되기 때문이다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(2)">
+          3. 우주의 먼지가 초록색 빛을 파란색 빛으로 바꾸기 때문이다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(3)">
+          4. 사람의 눈에는 초록색을 감지하는 원뿔세포가 전혀 없기 때문이다.
+        </button>
+      </div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>중학교 3학년 과학교과 [태양계와 별] 연계 교육용 시뮬레이션 | 흑체복사 및 시각 색합성 원리</p>
+    </footer>
+  </div>
+
+  <script>
+    /* ========================================================
+       1. STAR BACKGROUND GENERATOR & SPACESHIP ANIMATION
+       ======================================================== */
+    const bgCanvas = document.getElementById('bg-stars');
+    const bgCtx = bgCanvas.getContext('2d');
+    let bgWidth, bgHeight;
+    const bgStarsList = [];
+
+    function resizeBg() {
+      bgWidth = window.innerWidth;
+      bgHeight = window.innerHeight;
+      bgCanvas.width = bgWidth;
+      bgCanvas.height = bgHeight;
+      bgStarsList.length = 0;
+      for (let i = 0; i < 150; i++) {
+        bgStarsList.push({
+          x: Math.random() * bgWidth,
+          y: Math.random() * bgHeight,
+          r: Math.random() * 1.5,
+          alpha: Math.random(),
+          speed: 0.005 + Math.random() * 0.015
+        });
+      }
+    }
+    window.addEventListener('resize', () => {
+      resizeBg();
+      drawSpectrumCanvas();
+    });
+    resizeBg();
+
+    let activeSpaceship = null;
+    let lastSpaceshipSpawnTime = 0;
+    let isMouseHovering = false;
+    let mouseX = -1000;
+    let mouseY = -1000;
+
+    window.addEventListener('mousemove', (e) => {
+      isMouseHovering = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      checkAndSpawnSpaceship();
+    });
+
+    window.addEventListener('mouseleave', () => {
+      isMouseHovering = false;
+      mouseX = -1000;
+      mouseY = -1000;
+    });
+
+    function checkAndSpawnSpaceship() {
+      const now = Date.now();
+      if (isMouseHovering && !activeSpaceship && (now - lastSpaceshipSpawnTime >= 10000)) {
+        spawnSpaceship();
+        lastSpaceshipSpawnTime = now;
+      }
+    }
+    setInterval(checkAndSpawnSpaceship, 1000);
+
+    function spawnSpaceship() {
+      const fromLeft = Math.random() > 0.4;
+      let sx, sy, ex, ey;
+
+      if (fromLeft) {
+        sx = -60;
+        sy = Math.random() * (bgHeight * 0.7) + bgHeight * 0.1;
+        ex = bgWidth + 60;
+        ey = sy + (Math.random() * 300 - 150);
+      } else {
+        sx = Math.random() * (bgWidth * 0.7) + bgWidth * 0.1;
+        sy = -60;
+        ex = sx + (Math.random() * 400 - 200);
+        ey = bgHeight + 60;
+      }
+
+      const angle = Math.atan2(ey - sy, ex - sx);
+
+      activeSpaceship = {
+        sx, sy, ex, ey,
+        x: sx, y: sy,
+        angle,
+        progress: 0,
+        duration: 4500,
+        startTime: Date.now(),
+        particles: []
+      };
+    }
+
+    function updateAndDrawSpaceship(ctx) {
+      if (!activeSpaceship) return;
+
+      const now = Date.now();
+      const elapsed = now - activeSpaceship.startTime;
+      activeSpaceship.progress = elapsed / activeSpaceship.duration;
+
+      if (activeSpaceship.progress >= 1) {
+        activeSpaceship = null;
+        return;
+      }
+
+      const p = activeSpaceship.progress;
+      activeSpaceship.x = activeSpaceship.sx + (activeSpaceship.ex - activeSpaceship.sx) * p;
+      activeSpaceship.y = activeSpaceship.sy + (activeSpaceship.ey - activeSpaceship.sy) * p;
+
+      const x = activeSpaceship.x;
+      const y = activeSpaceship.y;
+      const angle = activeSpaceship.angle;
+
+      const backX = x - Math.cos(angle) * 22;
+      const backY = y - Math.sin(angle) * 22;
+
+      for (let i = 0; i < 3; i++) {
+        activeSpaceship.particles.push({
+          x: backX + (Math.random() * 6 - 3),
+          y: backY + (Math.random() * 6 - 3),
+          r: Math.random() * 3.5 + 2,
+          alpha: 1,
+          vx: -Math.cos(angle) * (1.5 + Math.random() * 2),
+          vy: -Math.sin(angle) * (1.5 + Math.random() * 2),
+          color: Math.random() > 0.4 ? '#38bdf8' : (Math.random() > 0.5 ? '#ec4899' : '#6366f1')
+        });
+      }
+
+      for (let i = activeSpaceship.particles.length - 1; i >= 0; i--) {
+        const pt = activeSpaceship.particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.alpha -= 0.025;
+        pt.r *= 0.94;
+
+        if (pt.alpha <= 0) {
+          activeSpaceship.particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = pt.alpha;
+        ctx.fillStyle = pt.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 18;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(26, 0);
+      ctx.lineTo(-14, -14);
+      ctx.lineTo(-8, -4);
+      ctx.lineTo(-12, 0);
+      ctx.lineTo(-8, 4);
+      ctx.lineTo(-14, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.ellipse(4, 0, 7, 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-10, -10); ctx.lineTo(10, -2);
+      ctx.moveTo(-10, 10);  ctx.lineTo(10, 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(-10, 0, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function animateBg() {
+      bgCtx.clearRect(0, 0, bgWidth, bgHeight);
+
+      bgStarsList.forEach(s => {
+        s.alpha += s.speed;
+        if (s.alpha > 1 || s.alpha < 0.2) s.speed = -s.speed;
+
+        let currentAlpha = Math.abs(s.alpha);
+        let currentRadius = s.r;
+        let isGlowingProximity = false;
+
+        if (isMouseHovering && mouseX >= 0 && mouseY >= 0) {
+          const dx = s.x - mouseX;
+          const dy = s.y - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 220;
+
+          if (dist < maxDist) {
+            const factor = (1 - dist / maxDist);
+            currentAlpha = Math.min(1.0, currentAlpha + factor * 0.65 + 0.2);
+            currentRadius = s.r * (1 + factor * 1.3);
+            isGlowingProximity = true;
+          } else {
+            currentAlpha = Math.min(1.0, currentAlpha + 0.2);
+          }
+        }
+
+        bgCtx.save();
+        bgCtx.globalAlpha = currentAlpha;
+        bgCtx.fillStyle = '#ffffff';
+
+        if (isGlowingProximity) {
+          bgCtx.shadowBlur = 12;
+          bgCtx.shadowColor = '#38bdf8';
+        }
+
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, currentRadius, 0, Math.PI * 2);
+        bgCtx.fill();
+        bgCtx.restore();
+      });
+
+      updateAndDrawSpaceship(bgCtx);
+      requestAnimationFrame(animateBg);
+    }
+    animateBg();
+
+    /* ========================================================
+       2. TEMPERATURE TO BLACKBODY RGB CONVERSION (Tanner Helland Algorithm)
+       ======================================================== */
+    function tempToRGB(kelvin) {
+      let temp = kelvin / 100;
+      let r, g, b;
+
+      // Red
+      if (temp <= 66) {
+        r = 255;
+      } else {
+        r = temp - 60;
+        r = 329.698727446 * Math.pow(r, -0.1332047592);
+        if (r < 0) r = 0;
+        if (r > 255) r = 255;
+      }
+
+      // Green
+      if (temp <= 66) {
+        g = temp;
+        g = 99.4708025861 * Math.log(g) - 161.1195681661;
+        if (g < 0) g = 0;
+        if (g > 255) g = 255;
+      } else {
+        g = temp - 60;
+        g = 288.1221695283 * Math.pow(g, -0.0755148492);
+        if (g < 0) g = 0;
+        if (g > 255) g = 255;
+      }
+
+      // Blue
+      if (temp >= 66) {
+        b = 255;
+      } else if (temp <= 19) {
+        b = 0;
+      } else {
+        b = temp - 10;
+        b = 138.5177312231 * Math.log(b) - 305.0447927307;
+        if (b < 0) b = 0;
+        if (b > 255) b = 255;
+      }
+
+      return {
+        r: Math.round(r),
+        g: Math.round(g),
+        b: Math.round(b)
+      };
+    }
+
+    /* Get Color Description */
+    function getColorName(temp) {
+      if (temp < 3500) return "적색 (Red Giant/Dwarf)";
+      if (temp < 5000) return "주황색 (Orange)";
+      if (temp < 6000) return "황백색 (Yellow-White / 태양)";
+      if (temp < 7500) return "순백색 (Pure White)";
+      if (temp < 11000) return "청백색 (Blue-White)";
+      return "청색 (Hot Blue Star)";
+    }
+
+    /* ========================================================
+       3. STAR CANVAS RENDERING
+       ======================================================== */
+    const starCanvas = document.getElementById('starCanvas');
+    const starCtx = starCanvas.getContext('2d');
+    let starTime = 0;
+
+    function drawStar(rgb) {
+      const w = starCanvas.width;
+      const h = starCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      starTime += 0.03;
+
+      starCtx.clearRect(0, 0, w, h);
+
+      // Outer Corona Glow
+      const glowGrad = starCtx.createRadialGradient(cx, cy, 20, cx, cy, 110);
+      glowGrad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
+      glowGrad.addColorStop(0.4, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
+      glowGrad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+      
+      starCtx.fillStyle = glowGrad;
+      starCtx.beginPath();
+      starCtx.arc(cx, cy, 110, 0, Math.PI * 2);
+      starCtx.fill();
+
+      // Pulsing Corona Rays
+      starCtx.save();
+      starCtx.translate(cx, cy);
+      starCtx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`;
+      starCtx.lineWidth = 2;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * Math.PI / 6) + Math.sin(starTime + i) * 0.1;
+        const len = 70 + Math.sin(starTime * 2 + i) * 10;
+        starCtx.beginPath();
+        starCtx.moveTo(0, 0);
+        starCtx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len);
+        starCtx.stroke();
+      }
+      starCtx.restore();
+
+      // Main Core
+      const coreGrad = starCtx.createRadialGradient(cx - 15, cy - 15, 5, cx, cy, 60);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.3, `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
+      coreGrad.addColorStop(1, `rgba(${Math.max(0, rgb.r - 40)}, ${Math.max(0, rgb.g - 40)}, ${Math.max(0, rgb.b - 40)}, 0.9)`);
+
+      starCtx.fillStyle = coreGrad;
+      starCtx.beginPath();
+      starCtx.arc(cx, cy, 60, 0, Math.PI * 2);
+      starCtx.fill();
+
+      starCanvas.style.setProperty('--star-glow-color', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`);
+    }
+
+    /* ========================================================
+       4. PLANCK SPECTRUM CANVAS RENDERING
+       ======================================================== */
+    const specCanvas = document.getElementById('spectrumCanvas');
+    const specCtx = specCanvas.getContext('2d');
+
+    function getPeakWavelength(temp) {
+      return Math.round(2897771 / temp);
+    }
+
+    function planckIntensity(lambda, temp) {
+      const h = 6.626e-34;
+      const c = 3.0e8;
+      const k = 1.38e-23;
+      const l = lambda * 1e-9;
+      
+      const exponent = (h * c) / (l * k * temp);
+      if (exponent > 100) return 0;
+      return (1 / Math.pow(l, 5)) * (1 / (Math.exp(exponent) - 1));
+    }
+
+    function drawSpectrumCanvas() {
+      const rect = specCanvas.getBoundingClientRect();
+      specCanvas.width = rect.width;
+      specCanvas.height = rect.height;
+
+      const w = specCanvas.width;
+      const h = specCanvas.height;
+      const temp = parseInt(document.getElementById('tempSlider').value);
+
+      specCtx.clearRect(0, 0, w, h);
+
+      const minLambda = 100;
+      const maxLambda = 1200;
+
+      const visMin = 380;
+      const visMax = 750;
+      const visXMin = ((visMin - minLambda) / (maxLambda - minLambda)) * w;
+      const visXMax = ((visMax - minLambda) / (maxLambda - minLambda)) * w;
+
+      const visGrad = specCtx.createLinearGradient(visXMin, 0, visXMax, 0);
+      visGrad.addColorStop(0.00, '#7800ff');
+      visGrad.addColorStop(0.15, '#0000ff');
+      visGrad.addColorStop(0.35, '#00ffff');
+      visGrad.addColorStop(0.48, '#00ff00');
+      visGrad.addColorStop(0.60, '#ffff00');
+      visGrad.addColorStop(0.75, '#ff7f00');
+      visGrad.addColorStop(1.00, '#ff0000');
+
+      specCtx.fillStyle = visGrad;
+      specCtx.globalAlpha = 0.25;
+      specCtx.fillRect(visXMin, 0, visXMax - visXMin, h - 25);
+      specCtx.globalAlpha = 1.0;
+
+      specCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      specCtx.setLineDash([4, 4]);
+      specCtx.beginPath();
+      specCtx.moveTo(visXMin, 0); specCtx.lineTo(visXMin, h - 25);
+      specCtx.moveTo(visXMax, 0); specCtx.lineTo(visXMax, h - 25);
+      specCtx.stroke();
+      specCtx.setLineDash([]);
+
+      specCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      specCtx.font = '11px sans-serif';
+      specCtx.fillText('자외선 (UV)', 10, h - 35);
+      specCtx.fillText('가시광선 (380~750nm)', visXMin + 10, 20);
+      specCtx.fillText('적외선 (IR)', visXMax + 15, h - 35);
+
+      const points = [];
+      let maxVal = 0;
+      const peakLambda = getPeakWavelength(temp);
+
+      for (let x = 0; x < w; x++) {
+        const lambda = minLambda + (x / w) * (maxLambda - minLambda);
+        const val = planckIntensity(lambda, temp);
+        if (val > maxVal) maxVal = val;
+        points.push({ x, lambda, val });
+      }
+
+      const paddingBottom = 25;
+      const paddingTop = 30;
+      const availableH = h - paddingBottom - paddingTop;
+
+      specCtx.beginPath();
+      specCtx.moveTo(0, h - paddingBottom);
+
+      for (let i = 0; i < points.length; i++) {
+        const y = (h - paddingBottom) - (points[i].val / maxVal) * availableH;
+        specCtx.lineTo(points[i].x, y);
+      }
+      specCtx.lineTo(w, h - paddingBottom);
+
+      const rgb = tempToRGB(temp);
+      const curveGrad = specCtx.createLinearGradient(0, 0, 0, h);
+      curveGrad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`);
+      curveGrad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.05)`);
+      
+      specCtx.fillStyle = curveGrad;
+      specCtx.fill();
+
+      specCtx.strokeStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      specCtx.lineWidth = 3;
+      specCtx.beginPath();
+      for (let i = 0; i < points.length; i++) {
+        const y = (h - paddingBottom) - (points[i].val / maxVal) * availableH;
+        if (i === 0) specCtx.moveTo(points[i].x, y);
+        else specCtx.lineTo(points[i].x, y);
+      }
+      specCtx.stroke();
+
+      const peakX = ((peakLambda - minLambda) / (maxLambda - minLambda)) * w;
+      if (peakX >= 0 && peakX <= w) {
+        specCtx.fillStyle = '#38bdf8';
+        specCtx.beginPath();
+        specCtx.arc(peakX, paddingTop, 5, 0, Math.PI * 2);
+        specCtx.fill();
+
+        specCtx.strokeStyle = '#38bdf8';
+        specCtx.lineWidth = 1;
+        specCtx.setLineDash([2, 2]);
+        specCtx.beginPath();
+        specCtx.moveTo(peakX, paddingTop);
+        specCtx.lineTo(peakX, h - paddingBottom);
+        specCtx.stroke();
+        specCtx.setLineDash([]);
+
+        specCtx.fillStyle = '#38bdf8';
+        specCtx.font = 'bold 11px sans-serif';
+        const labelText = `정점: ${peakLambda}nm`;
+        specCtx.fillText(labelText, Math.min(w - 70, Math.max(10, peakX - 25)), paddingTop - 8);
+      }
+
+      specCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      specCtx.lineWidth = 1;
+      specCtx.beginPath();
+      specCtx.moveTo(0, h - paddingBottom);
+      specCtx.lineTo(w, h - paddingBottom);
+      specCtx.stroke();
+    }
+
+    /* ========================================================
+       5. MAIN UPDATE FUNCTION
+       ======================================================== */
+    function updateSimulation(temp) {
+      temp = parseInt(temp);
+      const rgb = tempToRGB(temp);
+      const colorName = getColorName(temp);
+      const peakW = getPeakWavelength(temp);
+
+      document.getElementById('tempDisplay').textContent = `${temp.toLocaleString()} K`;
+      document.getElementById('sliderValText').textContent = `${temp.toLocaleString()} K`;
+      document.getElementById('colorNameDisplay').textContent = colorName;
+      document.getElementById('peakWavelength').textContent = `${peakW} nm`;
+      document.getElementById('rgbRatio').textContent = `R:${rgb.r} G:${rgb.g} B:${rgb.b}`;
+
+      const peakRegionElem = document.getElementById('peakRegion');
+      if (peakW < 380) {
+        peakRegionElem.textContent = "자외선 (Ultraviolet)";
+        peakRegionElem.style.color = "#a855f7";
+      } else if (peakW <= 450) {
+        peakRegionElem.textContent = "보라~파랑 가시광선";
+        peakRegionElem.style.color = "#3b82f6";
+      } else if (peakW <= 495) {
+        peakRegionElem.textContent = "남색~청록 가시광선";
+        peakRegionElem.style.color = "#06b6d4";
+      } else if (peakW <= 570) {
+        peakRegionElem.textContent = "초록색 가시광선 (Green)";
+        peakRegionElem.style.color = "#22c55e";
+      } else if (peakW <= 590) {
+        peakRegionElem.textContent = "노란색 가시광선";
+        peakRegionElem.style.color = "#eab308";
+      } else if (peakW <= 750) {
+        peakRegionElem.textContent = "주황~빨강 가시광선";
+        peakRegionElem.style.color = "#ef4444";
+      } else {
+        peakRegionElem.textContent = "적외선 (Infrared)";
+        peakRegionElem.style.color = "#f43f5e";
+      }
+
+      const perceivedElem = document.getElementById('perceivedColor');
+      perceivedElem.textContent = colorName.split(' ')[0];
+      perceivedElem.style.color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+      document.getElementById('barRed').style.width = `${(rgb.r / 255) * 100}%`;
+      document.getElementById('barGreen').style.width = `${(rgb.g / 255) * 100}%`;
+      document.getElementById('barBlue').style.width = `${(rgb.b / 255) * 100}%`;
+      document.getElementById('valRed').textContent = rgb.r;
+      document.getElementById('valGreen').textContent = rgb.g;
+      document.getElementById('valBlue').textContent = rgb.b;
+
+      const mixText = document.getElementById('mixResultText');
+      mixText.textContent = `${colorName.split(' ')[0]} (rgb(${rgb.r}, ${rgb.g}, ${rgb.b}))`;
+      mixText.style.color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+      document.getElementById('tempSlider').style.setProperty('--slider-thumb-color', `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
+
+      drawStar(rgb);
+      drawSpectrumCanvas();
+    }
+
+    function setupSliderTrackGradient() {
+      const min = 2000;
+      const max = 35000;
+      const steps = 30;
+      const stops = [];
+      for (let i = 0; i <= steps; i++) {
+        const pct = (i / steps) * 100;
+        const temp = min + (i / steps) * (max - min);
+        const rgb = tempToRGB(temp);
+        stops.push(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b}) ${pct.toFixed(1)}%`);
+      }
+      const gradientCss = `linear-gradient(to right, ${stops.join(', ')})`;
+      document.getElementById('tempSlider').style.background = gradientCss;
+    }
+
+    function loopStarAnim() {
+      const temp = parseInt(document.getElementById('tempSlider').value);
+      const rgb = tempToRGB(temp);
+      drawStar(rgb);
+      requestAnimationFrame(loopStarAnim);
+    }
+
+    /* Event Listeners */
+    const slider = document.getElementById('tempSlider');
+    slider.addEventListener('input', (e) => {
+      updateSimulation(e.target.value);
+      document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
+    });
+
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const temp = btn.getAttribute('data-temp');
+        slider.value = temp;
+        updateSimulation(temp);
+      });
+    });
+
+    /* Quiz Logic */
+    function checkQuiz(index) {
+      const feedback = document.getElementById('quizFeedback');
+      const opts = document.querySelectorAll('.quiz-opt');
+      
+      opts.forEach(opt => opt.classList.remove('correct', 'wrong'));
+
+      if (index === 1) {
+        opts[1].classList.add('correct');
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(34, 197, 94, 0.2)';
+        feedback.style.border = '1px solid #22c55e';
+        feedback.style.color = '#86efac';
+        feedback.innerHTML = '🎉 <strong>정답입니다!</strong> 별은 연속 스펙트럼으로 모든 가시광선을 동시에 발사합니다. 초록색 파장이 정점이더라도 빨간색과 파란색 빛도 매우 강하게 나와 사람의 눈 원뿔세포 3가지가 동시에 자극받아 <strong>"흰색(백색)"</strong>으로 합성됩니다!';
+      } else {
+        opts[index].classList.add('wrong');
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(239, 68, 68, 0.2)';
+        feedback.style.border = '1px solid #ef4444';
+        feedback.style.color = '#fca5a5';
+        feedback.innerHTML = '❌ <strong>아쉽네요! 다시 생각해보세요.</strong> 힌트: 단일 파장의 레이저와 달리, 별은 무지개의 모든 색(가시광선 전체)을 동시에 방출합니다. 빨강 + 초록 + 파랑이 모두 합쳐지면 무슨 색이 될까요?';
+      }
+    }
+
+    // Initialize
+    setupSliderTrackGradient();
+    updateSimulation(5800);
+    loopStarAnim();
+  </script>
+</body>
+</html>

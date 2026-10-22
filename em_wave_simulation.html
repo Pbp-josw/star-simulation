@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>온도와 전자기파 방출 원리 시뮬레이션 | 중3 과학</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --bg-card: rgba(18, 24, 43, 0.75);
+      --bg-card-hover: rgba(28, 36, 63, 0.85);
+      --border-glow: rgba(99, 102, 241, 0.2);
+      --accent-blue: #6366f1;
+      --accent-cyan: #38bdf8;
+      --accent-pink: #ec4899;
+      --accent-yellow: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-kr: 'Noto Sans KR', sans-serif;
+      --font-en: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: var(--font-kr);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Starry Background Canvas */
+    #bg-stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navigation Bar between simulations */
+    .nav-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(56,189,248,0.2));
+      border: 1px solid rgba(99,102,241,0.4);
+      color: var(--accent-cyan);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* Main Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Glass Card */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+      transition: border-color 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Canvas Containers */
+    .canvas-box {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.9) 0%, rgba(7, 9, 19, 0.98) 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    canvas.sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Slider styling matching star temp slider */
+    .control-group {
+      margin-top: 1.5rem;
+    }
+
+    .slider-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(to right, 
+        #ef4444 0%, 
+        #f97316 10%, 
+        #eab308 25%, 
+        #22c55e 40%, 
+        #38bdf8 65%, 
+        #a855f7 100%
+      );
+      outline: none;
+      cursor: pointer;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--slider-thumb-color, #ffffff);
+      border: 3px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 14px var(--slider-thumb-color, rgba(255,255,255,0.9));
+      transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Presets */
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .btn-preset {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-preset:hover, .btn-preset.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    /* Telemetry Grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .data-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 0.9rem;
+    }
+
+    .data-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .data-value {
+      font-family: var(--font-en);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Explanation Section */
+    .explanation-section {
+      margin-top: 3rem;
+    }
+
+    .section-heading {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    .explain-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .explain-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .explain-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .explain-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .explain-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--accent-cyan);
+    }
+
+    .explain-text {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    .highlight-box {
+      background: rgba(99, 102, 241, 0.12);
+      border-left: 4px solid var(--accent-blue);
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* EM Wave Spectrum Graphic Box */
+    .em-spectrum-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-top: 2rem;
+    }
+
+    /* Quiz Section */
+    .quiz-section {
+      margin-top: 3rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 2rem;
+    }
+
+    .quiz-question {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 600px) {
+      .quiz-options {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .quiz-opt {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--text-main);
+      text-align: left;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quiz-opt:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--accent-blue);
+    }
+
+    .quiz-opt.correct {
+      background: rgba(34, 197, 94, 0.25) !important;
+      border-color: #22c55e !important;
+      color: #86efac;
+    }
+
+    .quiz-opt.wrong {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border-color: #ef4444 !important;
+      color: #fca5a5;
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2.5rem 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Starry Background Canvas -->
+  <canvas id="bg-stars"></canvas>
+
+  <div class="container">
+    <!-- Nav Link between simulations -->
+    <div class="nav-bar">
+      <a href="index.html" class="nav-link">✨ 별의 온도와 색 관측</a>
+      <a href="em_wave_simulation.html" class="nav-link active">⚡ 입자 열운동 & 전자기파 방출 원리</a>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <div class="badge">🔬 중3 과학 | 전자기파와 열복사 탐구</div>
+      <h1>온도와 전자기파 방출 원리 시뮬레이션</h1>
+      <p>물체의 <strong>온도가 높아지면 입자의 열운동이 왜 격렬해지고 전자기파(빛)를 내뿜는지</strong> 시각적으로 관찰해보세요!</p>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      
+      <!-- Left Card: Atomic Jitter & EM Wave Emission Canvas -->
+      <div class="card">
+        <div class="card-title">
+          <span>⚛️</span> 입자(전하) 열운동과 전자기파 파동 방출
+        </div>
+        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom: 0.75rem;">
+          물체 속 전하(입자)들이 진동·가속하면서 파동 모양의 전자기파(전기장+자기장 파동)를 사방으로 전파합니다.
+        </p>
+
+        <div class="canvas-box">
+          <canvas id="particleCanvas" class="sim-canvas"></canvas>
+        </div>
+
+        <!-- Slider & Presets -->
+        <div class="control-group">
+          <div class="slider-container">
+            <div class="slider-label">
+              <span>물체/별의 온도 (Temperature)</span>
+              <span id="sliderValText" style="color: var(--accent-cyan); font-family: var(--font-en); font-weight:700;">5,800 K</span>
+            </div>
+            <input type="range" id="tempSlider" min="300" max="30000" step="100" value="5800">
+          </div>
+
+          <div style="font-size:0.88rem; color:var(--text-muted);">대표적인 온도 상황 선택 (Presets)</div>
+          <div class="preset-buttons">
+            <button class="btn-preset" data-temp="300">
+              🌡️ 상온 물체 (300K / 27℃)
+            </button>
+            <button class="btn-preset" data-temp="1500">
+              🔥 붉은 숯불 (1,500K)
+            </button>
+            <button class="btn-preset active" data-temp="5800">
+              ☀️ 태양 표면 (5,800K)
+            </button>
+            <button class="btn-preset" data-temp="15000">
+              ⚡ 푸른 별 (15,000K)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Card: Waveform Transverse Wave & Telemetry -->
+      <div class="card">
+        <div class="card-title">
+          <span>🌊</span> 방출 전자기파의 파동 그래프 (&lambda;, f)
+        </div>
+        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          온도가 올라갈수록 진동수($f$)가 증가하고 파장($\lambda$)이 짧아지며 강한 에너지를 갖게 됩니다.
+        </p>
+
+        <div class="canvas-box" style="height: 200px;">
+          <canvas id="waveCanvas" class="sim-canvas"></canvas>
+        </div>
+
+        <!-- Telemetry Data Grid -->
+        <div class="data-grid">
+          <div class="data-item">
+            <div class="data-label">입자 열운동 격렬도 (속도)</div>
+            <div class="data-value" id="particleSpeedVal" style="color:#f59e0b;">보통 (Fast)</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">주 방출 전자기파 파장 (&lambda;)</div>
+            <div class="data-value" id="waveLengthVal">500 nm</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">전자기파 진동수 ($f$) / 에너지</div>
+            <div class="data-value" id="frequencyVal" style="color:#38bdf8;">6.0 × 10¹⁴ Hz</div>
+          </div>
+          <div class="data-item">
+            <div class="data-label">주 방출 전자기파 종류</div>
+            <div class="data-value" id="emTypeVal" style="color:#22c55e;">가시광선 (Visible)</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EM Spectrum Map -->
+    <div class="em-spectrum-card">
+      <h2 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--accent-cyan);">
+        📡 전자기파 스펙트럼에서의 위치 관측
+      </h2>
+      <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 1.25rem;">
+        온도가 높아짐에 따라 방출되는 전자기파가 <strong>[적외선 &rarr; 가시광선(빨강~보라) &rarr; 자외선]</strong> 영역으로 이동하는 모습을 관찰하세요.
+      </p>
+
+      <div class="canvas-box" style="height: 120px;">
+        <canvas id="spectrumBandCanvas" class="sim-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Science Concept Cards for 3rd Graders -->
+    <div class="explanation-section">
+      <div class="section-heading">
+        💡 중3 과학: "왜 온도가 오르면 전자기파(빛)가 나올까?" 3단계 정복
+      </div>
+      <div class="explain-cards">
+        
+        <div class="explain-card">
+          <div class="explain-icon">🔥</div>
+          <div class="explain-title">1. 온도가 높다 = 입자가 격렬히 떨린다</div>
+          <div class="explain-text">
+            모든 물질을 이루는 원자/전자(전하)는 항상 진동합니다. <strong>온도가 높아질수록 입자들의 운동 에너지가 커져 진동과 충돌이 훨씬 더 격렬해집니다.</strong>
+            <div class="highlight-box">
+              - 300K (상온): 천천히 살랑살랑 진동<br>
+              - 5,800K (태양): 미친 듯이 맹렬하게 진동 & 가속!
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-card">
+          <div class="explain-icon">⚡</div>
+          <div class="explain-title">2. 흔들리는 전하 &rarr; 전자기파 방출</div>
+          <div class="explain-text">
+            전기를 띤 입자가 움직이면 전기장과 자기장이 변화합니다. <strong>전하가 가속 운동(진동)을 하면 변하는 전자기장이 공간으로 파도처럼 퍼져나가는데, 이것이 바로 전자기파(빛)!</strong>
+            <div class="highlight-box">
+              입자 진동 $\rightarrow$ 전기장·자기장 파동 생성 $\rightarrow$ 우주 공간으로 전자기파 발사!
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-card">
+          <div class="explain-icon">🌈</div>
+          <div class="explain-title">3. 온도가 높을수록 짧은 파장 & 큰 에너지</div>
+          <div class="explain-text">
+            입자가 세게 털릴수록 <strong>더 촘촘하고 강한 파동(높은 진동수 $f$, 짧은 파장 $\lambda$)</strong>이 방출됩니다.
+            <div class="highlight-box">
+              - 저온 (300K): 파장 길고 에너지 작음 (적외선)<br>
+              - 고온 (5,800K~): 파장 촘촘하고 고에너지 (가시광선, 자외선)
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Quiz Section -->
+    <div class="quiz-section">
+      <div class="card-title">
+        <span>🧩</span> 개념 확인 퀴즈 (중3 전자기파 열복사)
+      </div>
+      <div class="quiz-question" id="quizQuestion">
+        Q. 물체의 온도가 높아질 때 물체 내부의 입자와 방출되는 전자기파의 변화로 옳은 설명은 무엇일까요?
+      </div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="checkQuiz(0)">
+          1. 입자의 진동이 느려지면서 파장이 긴 적외선만 더 많이 나온다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(1)">
+          2. 입자들의 열운동(가속 진동)이 격렬해져 진동수가 높고 파장이 짧은 고에너지 전자기파가 나온다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(2)">
+          3. 온도가 올라가도 방출되는 전자기파의 파장과 진동수는 전혀 변하지 않는다.
+        </button>
+        <button class="quiz-opt" onclick="checkQuiz(3)">
+          4. 전자기파는 전기를 띤 입자가 정지해 있을 때만 방출된다.
+        </button>
+      </div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>중학교 3학년 과학교과 [열과 우리 생활 / 전자기파와 빛] 연계 교육용 시뮬레이션</p>
+    </footer>
+  </div>
+
+  <script>
+    /* ========================================================
+       1. STARRY BACKGROUND & SPACESHIP FLIGHT
+       ======================================================== */
+    const bgCanvas = document.getElementById('bg-stars');
+    const bgCtx = bgCanvas.getContext('2d');
+    let bgWidth, bgHeight;
+    const bgStarsList = [];
+
+    function resizeBg() {
+      bgWidth = window.innerWidth;
+      bgHeight = window.innerHeight;
+      bgCanvas.width = bgWidth;
+      bgCanvas.height = bgHeight;
+      bgStarsList.length = 0;
+      for (let i = 0; i < 150; i++) {
+        bgStarsList.push({
+          x: Math.random() * bgWidth,
+          y: Math.random() * bgHeight,
+          r: Math.random() * 1.5,
+          alpha: Math.random(),
+          speed: 0.005 + Math.random() * 0.015
+        });
+      }
+    }
+    window.addEventListener('resize', () => {
+      resizeBg();
+      drawSimulations();
+    });
+    resizeBg();
+
+    let activeSpaceship = null;
+    let lastSpaceshipSpawnTime = 0;
+    let isMouseHovering = false;
+    let mouseX = -1000;
+    let mouseY = -1000;
+
+    window.addEventListener('mousemove', (e) => {
+      isMouseHovering = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      checkAndSpawnSpaceship();
+    });
+
+    window.addEventListener('mouseleave', () => {
+      isMouseHovering = false;
+      mouseX = -1000;
+      mouseY = -1000;
+    });
+
+    function checkAndSpawnSpaceship() {
+      const now = Date.now();
+      if (isMouseHovering && !activeSpaceship && (now - lastSpaceshipSpawnTime >= 10000)) {
+        spawnSpaceship();
+        lastSpaceshipSpawnTime = now;
+      }
+    }
+    setInterval(checkAndSpawnSpaceship, 1000);
+
+    function spawnSpaceship() {
+      const fromLeft = Math.random() > 0.4;
+      let sx, sy, ex, ey;
+      if (fromLeft) {
+        sx = -60; sy = Math.random() * (bgHeight * 0.7) + bgHeight * 0.1;
+        ex = bgWidth + 60; ey = sy + (Math.random() * 300 - 150);
+      } else {
+        sx = Math.random() * (bgWidth * 0.7) + bgWidth * 0.1; sy = -60;
+        ex = sx + (Math.random() * 400 - 200); ey = bgHeight + 60;
+      }
+      const angle = Math.atan2(ey - sy, ex - sx);
+      activeSpaceship = { sx, sy, ex, ey, x: sx, y: sy, angle, progress: 0, duration: 4500, startTime: Date.now(), particles: [] };
+    }
+
+    function updateAndDrawSpaceship(ctx) {
+      if (!activeSpaceship) return;
+      const now = Date.now();
+      const elapsed = now - activeSpaceship.startTime;
+      activeSpaceship.progress = elapsed / activeSpaceship.duration;
+      if (activeSpaceship.progress >= 1) { activeSpaceship = null; return; }
+
+      const p = activeSpaceship.progress;
+      activeSpaceship.x = activeSpaceship.sx + (activeSpaceship.ex - activeSpaceship.sx) * p;
+      activeSpaceship.y = activeSpaceship.sy + (activeSpaceship.ey - activeSpaceship.sy) * p;
+      const x = activeSpaceship.x, y = activeSpaceship.y, angle = activeSpaceship.angle;
+
+      const backX = x - Math.cos(angle) * 22, backY = y - Math.sin(angle) * 22;
+      for (let i = 0; i < 3; i++) {
+        activeSpaceship.particles.push({
+          x: backX + (Math.random() * 6 - 3), y: backY + (Math.random() * 6 - 3),
+          r: Math.random() * 3.5 + 2, alpha: 1,
+          vx: -Math.cos(angle) * (1.5 + Math.random() * 2), vy: -Math.sin(angle) * (1.5 + Math.random() * 2),
+          color: Math.random() > 0.4 ? '#38bdf8' : '#ec4899'
+        });
+      }
+
+      for (let i = activeSpaceship.particles.length - 1; i >= 0; i--) {
+        const pt = activeSpaceship.particles[i];
+        pt.x += pt.vx; pt.y += pt.vy; pt.alpha -= 0.025; pt.r *= 0.94;
+        if (pt.alpha <= 0) { activeSpaceship.particles.splice(i, 1); continue; }
+        ctx.save(); ctx.globalAlpha = pt.alpha; ctx.fillStyle = pt.color;
+        ctx.shadowBlur = 10; ctx.shadowColor = pt.color; ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
+
+      ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+      ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 18;
+      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(26, 0); ctx.lineTo(-14, -14); ctx.lineTo(-8, -4); ctx.lineTo(-12, 0); ctx.lineTo(-8, 4); ctx.lineTo(-14, 14);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.ellipse(4, 0, 7, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, -2); ctx.moveTo(-10, 10); ctx.lineTo(10, 2); ctx.stroke();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(-10, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    function animateBg() {
+      bgCtx.clearRect(0, 0, bgWidth, bgHeight);
+      bgStarsList.forEach(s => {
+        s.alpha += s.speed;
+        if (s.alpha > 1 || s.alpha < 0.2) s.speed = -s.speed;
+        let currentAlpha = Math.abs(s.alpha);
+        let currentRadius = s.r;
+        let isGlowing = false;
+
+        if (isMouseHovering && mouseX >= 0 && mouseY >= 0) {
+          const dx = s.x - mouseX, dy = s.y - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 220) {
+            const factor = (1 - dist / 220);
+            currentAlpha = Math.min(1.0, currentAlpha + factor * 0.65 + 0.2);
+            currentRadius = s.r * (1 + factor * 1.3);
+            isGlowing = true;
+          } else {
+            currentAlpha = Math.min(1.0, currentAlpha + 0.2);
+          }
+        }
+        bgCtx.save(); bgCtx.globalAlpha = currentAlpha; bgCtx.fillStyle = '#ffffff';
+        if (isGlowing) { bgCtx.shadowBlur = 12; bgCtx.shadowColor = '#38bdf8'; }
+        bgCtx.beginPath(); bgCtx.arc(s.x, s.y, currentRadius, 0, Math.PI * 2); bgCtx.fill(); bgCtx.restore();
+      });
+      updateAndDrawSpaceship(bgCtx);
+      requestAnimationFrame(animateBg);
+    }
+    animateBg();
+
+    /* ========================================================
+       2. ATOMIC JITTER & EM WAVE EMISSION SIMULATION CANVAS
+       ======================================================== */
+    const particleCanvas = document.getElementById('particleCanvas');
+    const pCtx = particleCanvas.getContext('2d');
+    const atoms = [];
+    const waveRipples = [];
+
+    function initAtoms() {
+      atoms.length = 0;
+      const rows = 4;
+      const cols = 5;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          atoms.push({
+            gridX: c,
+            gridY: r,
+            baseX: 0,
+            baseY: 0,
+            x: 0,
+            y: 0,
+            phase: Math.random() * Math.PI * 2,
+            charge: (r + c) % 2 === 0 ? 1 : -1
+          });
+        }
+      }
+    }
+    initAtoms();
+
+    function getWaveColor(temp) {
+      if (temp < 1000) return '#ef4444'; // Infrared / Red
+      if (temp < 3000) return '#f97316'; // Orange
+      if (temp < 6500) return '#22c55e'; // Green / Sun Visible
+      if (temp < 12000) return '#38bdf8'; // Blue
+      return '#a855f7'; // UV / Purple
+    }
+
+    let timeStep = 0;
+    function drawParticleSim() {
+      const rect = particleCanvas.getBoundingClientRect();
+      particleCanvas.width = rect.width;
+      particleCanvas.height = rect.height;
+      const w = particleCanvas.width;
+      const h = particleCanvas.height;
+
+      const temp = parseInt(document.getElementById('tempSlider').value);
+      timeStep += 0.05 + (temp / 30000) * 0.2;
+
+      pCtx.clearRect(0, 0, w, h);
+
+      // Calculate Grid Layout
+      const marginX = w * 0.2;
+      const marginY = h * 0.2;
+      const spacingX = (w - marginX * 2) / 4;
+      const spacingY = (h - marginY * 2) / 3;
+
+      // Jitter Amplitude & Frequency based on Temp
+      const jitterAmp = Math.min(25, 2 + (temp / 30000) * 22);
+      const waveColor = getWaveColor(temp);
+
+      // Periodically spawn EM Wave Ripples from atoms
+      if (Math.random() < 0.25 + (temp / 30000) * 0.5) {
+        const randAtom = atoms[Math.floor(Math.random() * atoms.length)];
+        const ax = marginX + randAtom.gridX * spacingX + Math.sin(timeStep * 3 + randAtom.phase) * jitterAmp;
+        const ay = marginY + randAtom.gridY * spacingY + Math.cos(timeStep * 3 + randAtom.phase) * jitterAmp;
+        
+        waveRipples.push({
+          x: ax,
+          y: ay,
+          r: 5,
+          maxR: 80 + Math.random() * 40,
+          alpha: 1.0,
+          color: waveColor,
+          speed: 1.5 + (temp / 30000) * 3.5
+        });
+      }
+
+      // Draw & Update EM Wave Ripples
+      for (let i = waveRipples.length - 1; i >= 0; i--) {
+        const wp = waveRipples[i];
+        wp.r += wp.speed;
+        wp.alpha -= 0.02;
+
+        if (wp.alpha <= 0 || wp.r >= wp.maxR) {
+          waveRipples.splice(i, 1);
+          continue;
+        }
+
+        pCtx.save();
+        pCtx.globalAlpha = wp.alpha;
+        pCtx.strokeStyle = wp.color;
+        pCtx.lineWidth = Math.max(1, 3.5 * (1 - wp.r / wp.maxR));
+        pCtx.shadowBlur = 8;
+        pCtx.shadowColor = wp.color;
+        pCtx.beginPath();
+        pCtx.arc(wp.x, wp.y, wp.r, 0, Math.PI * 2);
+        pCtx.stroke();
+        pCtx.restore();
+      }
+
+      // Draw Atoms & Electrons
+      atoms.forEach(atom => {
+        const baseX = marginX + atom.gridX * spacingX;
+        const baseY = marginY + atom.gridY * spacingY;
+
+        // Jitter Offset
+        const offsetX = Math.sin(timeStep * 4 + atom.phase) * jitterAmp;
+        const offsetY = Math.cos(timeStep * 3.5 + atom.phase * 1.5) * jitterAmp;
+
+        atom.x = baseX + offsetX;
+        atom.y = baseY + offsetY;
+
+        // Draw Atomic Nucleus
+        pCtx.save();
+        pCtx.shadowBlur = 15;
+        pCtx.shadowColor = atom.charge > 0 ? '#ef4444' : '#38bdf8';
+        pCtx.fillStyle = atom.charge > 0 ? '#ff4757' : '#1e90ff';
+
+        pCtx.beginPath();
+        pCtx.arc(atom.x, atom.y, 11, 0, Math.PI * 2);
+        pCtx.fill();
+
+        // Charge Symbol (+/-)
+        pCtx.fillStyle = '#ffffff';
+        pCtx.font = 'bold 12px sans-serif';
+        pCtx.textAlign = 'center';
+        pCtx.textBaseline = 'middle';
+        pCtx.fillText(atom.charge > 0 ? '+' : '-', atom.x, atom.y);
+
+        // Orbiting Electron
+        const orbitR = 22;
+        const eAngle = timeStep * (4 + (temp / 30000) * 10) + atom.phase;
+        const ex = atom.x + Math.cos(eAngle) * orbitR;
+        const ey = atom.y + Math.sin(eAngle) * orbitR;
+
+        pCtx.fillStyle = '#f59e0b';
+        pCtx.shadowColor = '#f59e0b';
+        pCtx.shadowBlur = 10;
+        pCtx.beginPath();
+        pCtx.arc(ex, ey, 4, 0, Math.PI * 2);
+        pCtx.fill();
+
+        pCtx.restore();
+      });
+    }
+
+    /* ========================================================
+       3. TRANSVERSE EM WAVEFORM CANVAS RENDERING
+       ======================================================== */
+    const waveCanvas = document.getElementById('waveCanvas');
+    const wCtx = waveCanvas.getContext('2d');
+
+    function drawWaveSim() {
+      const rect = waveCanvas.getBoundingClientRect();
+      waveCanvas.width = rect.width;
+      waveCanvas.height = rect.height;
+      const w = waveCanvas.width;
+      const h = waveCanvas.height;
+      const midY = h / 2;
+
+      const temp = parseInt(document.getElementById('tempSlider').value);
+
+      wCtx.clearRect(0, 0, w, h);
+
+      // Baseline
+      wCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      wCtx.lineWidth = 1;
+      wCtx.setLineDash([4, 4]);
+      wCtx.beginPath();
+      wCtx.moveTo(0, midY); wCtx.lineTo(w, midY);
+      wCtx.stroke();
+      wCtx.setLineDash([]);
+
+      // Wavelength lambda (shorter at high temp) & Frequency (higher at high temp)
+      const lambdaPx = Math.max(25, 180 - (temp / 30000) * 145);
+      const amp = Math.min(55, 18 + (temp / 30000) * 35);
+      const waveColor = getWaveColor(temp);
+
+      wCtx.save();
+      wCtx.strokeStyle = waveColor;
+      wCtx.lineWidth = 3;
+      wCtx.shadowBlur = 12;
+      wCtx.shadowColor = waveColor;
+
+      wCtx.beginPath();
+      for (let x = 0; x <= w; x += 2) {
+        const k = (2 * Math.PI) / lambdaPx;
+        const y = midY + Math.sin(k * x - timeStep * 5) * amp;
+        if (x === 0) wCtx.moveTo(x, y);
+        else wCtx.lineTo(x, y);
+      }
+      wCtx.stroke();
+      wCtx.restore();
+
+      // Wavelength Marker Double Arrow
+      const markX1 = w * 0.3;
+      const markX2 = markX1 + lambdaPx;
+
+      wCtx.strokeStyle = '#38bdf8';
+      wCtx.lineWidth = 1.5;
+      wCtx.beginPath();
+      wCtx.moveTo(markX1, midY + amp + 15);
+      wCtx.lineTo(markX2, midY + amp + 15);
+      wCtx.stroke();
+
+      wCtx.fillStyle = '#38bdf8';
+      wCtx.font = 'bold 11px sans-serif';
+      wCtx.textAlign = 'center';
+      wCtx.fillText(`파장 λ = ${Math.round(2897771 / temp)} nm`, (markX1 + markX2) / 2, midY + amp + 30);
+    }
+
+    /* ========================================================
+       4. EM SPECTRUM BAND CANVAS
+       ======================================================== */
+    const bandCanvas = document.getElementById('spectrumBandCanvas');
+    const bCtx = bandCanvas.getContext('2d');
+
+    function drawSpectrumBand() {
+      const rect = bandCanvas.getBoundingClientRect();
+      bandCanvas.width = rect.width;
+      bandCanvas.height = rect.height;
+      const w = bandCanvas.width;
+      const h = bandCanvas.height;
+
+      const temp = parseInt(document.getElementById('tempSlider').value);
+
+      bCtx.clearRect(0, 0, w, h);
+
+      // Spectrum Bands Gradient
+      const grad = bCtx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0.00, '#ef4444'); // Radio/IR Red
+      grad.addColorStop(0.35, '#ff7f00'); // IR/Orange
+      grad.addColorStop(0.50, '#22c55e'); // Visible Green
+      grad.addColorStop(0.65, '#38bdf8'); // Cyan/Blue
+      grad.addColorStop(0.85, '#a855f7'); // UV/Purple
+      grad.addColorStop(1.00, '#6366f1'); // X-Ray
+
+      bCtx.fillStyle = grad;
+      bCtx.globalAlpha = 0.35;
+      bCtx.fillRect(10, 25, w - 20, h - 50);
+      bCtx.globalAlpha = 1.0;
+
+      // Border Box
+      bCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      bCtx.strokeRect(10, 25, w - 20, h - 50);
+
+      // Labels
+      bCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      bCtx.font = '11px sans-serif';
+      bCtx.textAlign = 'center';
+
+      bCtx.fillText('전파 / 적외선 (Infrared)', w * 0.15, h - 10);
+      bCtx.fillText('가시광선 (380~750nm)', w * 0.50, h - 10);
+      bCtx.fillText('자외선 / X선 (UV/X-Ray)', w * 0.85, h - 10);
+
+      // Current Emission Indicator Marker
+      // Map temp (300K ~ 30000K) to position (0.10 to 0.90)
+      const normPos = Math.min(0.90, Math.max(0.10, 0.10 + (Math.log10(temp / 300) / Math.log10(100)) * 0.80));
+      const markerX = 10 + normPos * (w - 20);
+
+      bCtx.fillStyle = '#ffffff';
+      bCtx.shadowColor = '#ffffff';
+      bCtx.shadowBlur = 10;
+      bCtx.beginPath();
+      bCtx.arc(markerX, 25 + (h - 50) / 2, 8, 0, Math.PI * 2);
+      bCtx.fill();
+
+      bCtx.strokeStyle = '#ffffff';
+      bCtx.lineWidth = 2;
+      bCtx.beginPath();
+      bCtx.moveTo(markerX, 5); bCtx.lineTo(markerX, h - 5);
+      bCtx.stroke();
+
+      bCtx.fillStyle = '#38bdf8';
+      bCtx.font = 'bold 12px sans-serif';
+      bCtx.fillText(`현재 방출: ${temp.toLocaleString()}K`, markerX, 18);
+    }
+
+    /* Combined Animation Loop */
+    function drawSimulations() {
+      drawParticleSim();
+      drawWaveSim();
+      drawSpectrumBand();
+    }
+
+    function animLoop() {
+      drawSimulations();
+      requestAnimationFrame(animLoop);
+    }
+
+    /* ========================================================
+       5. MAIN UPDATE FUNCTION
+       ======================================================== */
+    function updateSimulation(temp) {
+      temp = parseInt(temp);
+
+      document.getElementById('sliderValText').textContent = `${temp.toLocaleString()} K`;
+
+      const peakW = Math.round(2897771 / temp);
+      document.getElementById('waveLengthVal').textContent = `${peakW} nm`;
+
+      // Particle speed label & color
+      const pSpeedElem = document.getElementById('particleSpeedVal');
+      if (temp < 1000) {
+        pSpeedElem.textContent = "느림 (Slow Jitter)";
+        pSpeedElem.style.color = "#38bdf8";
+      } else if (temp < 4000) {
+        pSpeedElem.textContent = "보통 (Moderate Jitter)";
+        pSpeedElem.style.color = "#f59e0b";
+      } else if (temp < 10000) {
+        pSpeedElem.textContent = "빠름 (Fast Jitter)";
+        pSpeedElem.style.color = "#ef4444";
+      } else {
+        pSpeedElem.textContent = "맹렬함 (Violent Motion)";
+        pSpeedElem.style.color = "#a855f7";
+      }
+
+      // Frequency calculation (approx)
+      const freq = (3.0e8 / (peakW * 1e-9)).toExponential(1);
+      document.getElementById('frequencyVal').textContent = `${freq} Hz`;
+
+      // EM Type Text
+      const emTypeElem = document.getElementById('emTypeVal');
+      if (peakW > 750) {
+        emTypeElem.textContent = "적외선 (Infrared)";
+        emTypeElem.style.color = "#ef4444";
+      } else if (peakW >= 380) {
+        emTypeElem.textContent = "가시광선 (Visible Light)";
+        emTypeElem.style.color = "#22c55e";
+      } else {
+        emTypeElem.textContent = "자외선 (Ultraviolet)";
+        emTypeElem.style.color = "#a855f7";
+      }
+
+      // Update Slider Thumb Glow
+      const waveColor = getWaveColor(temp);
+      document.getElementById('tempSlider').style.setProperty('--slider-thumb-color', waveColor);
+    }
+
+    /* Event Listeners */
+    const slider = document.getElementById('tempSlider');
+    slider.addEventListener('input', (e) => {
+      updateSimulation(e.target.value);
+      document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
+    });
+
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const temp = btn.getAttribute('data-temp');
+        slider.value = temp;
+        updateSimulation(temp);
+      });
+    });
+
+    /* Quiz Logic */
+    function checkQuiz(index) {
+      const feedback = document.getElementById('quizFeedback');
+      const opts = document.querySelectorAll('.quiz-opt');
+      opts.forEach(opt => opt.classList.remove('correct', 'wrong'));
+
+      if (index === 1) {
+        opts[1].classList.add('correct');
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(34, 197, 94, 0.2)';
+        feedback.style.border = '1px solid #22c55e';
+        feedback.style.color = '#86efac';
+        feedback.innerHTML = '🎉 <strong>정답입니다!</strong> 온도가 높아지면 입자의 열운동(가속/진동)이 맹렬해져 변하는 전자기장이 강해집니다. 이에 따라 <strong>진동수($f$)가 높고 파장($\lambda$)이 짧은 고에너지 전자기파(가시광선, 자외선)</strong>가 활발하게 방출됩니다!';
+      } else {
+        opts[index].classList.add('wrong');
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(239, 68, 68, 0.2)';
+        feedback.style.border = '1px solid #ef4444';
+        feedback.style.color = '#fca5a5';
+        feedback.innerHTML = '❌ <strong>아쉽네요! 다시 생각해보세요.</strong> 힌트: 온도가 높아질수록 원자/전자의 떨림이 세져서 더 촘촘하고 빠른 전자기파 파동(고에너지)을 만듭니다.';
+      }
+    }
+
+    // Initialize
+    updateSimulation(5800);
+    animLoop();
+  </script>
+</body>
+</html>
